@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, Send, User, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
+import { useIsMobile, useIsTablet } from "@/hooks/useResponsive";
 
 /**
  * Message type matching server-side LLM Message interface
@@ -68,6 +69,7 @@ export type AIChatBoxProps = {
  * - Auto-scrolls to latest message
  * - Loading states
  * - Uses global theme colors from index.css
+ * - Responsive design for all screen sizes
  *
  * @example
  * ```tsx
@@ -78,7 +80,6 @@ export type AIChatBoxProps = {
  *
  *   const chatMutation = trpc.ai.chat.useMutation({
  *     onSuccess: (response) => {
- *       // Assuming your tRPC endpoint returns the AI response as a string
  *       setMessages(prev => [...prev, {
  *         role: "assistant",
  *         content: response
@@ -86,7 +87,6 @@ export type AIChatBoxProps = {
  *     },
  *     onError: (error) => {
  *       console.error("Chat error:", error);
- *       // Optionally show error message to user
  *     }
  *   });
  *
@@ -125,6 +125,9 @@ export function AIChatBox({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
@@ -187,6 +190,27 @@ export function AIChatBox({
     }
   };
 
+  // Responsive height calculations
+  const getContainerHeight = () => {
+    if (typeof height === 'number') return `${height}px`;
+    if (height) return height;
+    return isMobile ? "500px" : isTablet ? "550px" : "600px";
+  };
+
+  // Responsive textarea rows
+  const getTextareaRows = () => {
+    if (isMobile) return 2;
+    if (isTablet) return 3;
+    return 3;
+  };
+
+  // Responsive placeholder text
+  const getPlaceholderText = () => {
+    if (placeholder) return placeholder;
+    if (isMobile) return "Type a message...";
+    return "Type your message here...";
+  };
+
   return (
     <div
       ref={containerRef}
@@ -194,26 +218,26 @@ export function AIChatBox({
         "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
         className
       )}
-      style={{ height }}
+      style={{ height: getContainerHeight() }}
     >
       {/* Messages Area */}
       <div ref={scrollAreaRef} className="flex-1 overflow-hidden">
         {displayMessages.length === 0 ? (
-          <div className="flex h-full flex-col p-4">
-            <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
+          <div className="flex h-full flex-col p-3 md:p-4">
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 md:gap-6 text-muted-foreground">
               <div className="flex flex-col items-center gap-3">
-                <Sparkles className="size-12 opacity-20" />
-                <p className="text-sm">{emptyStateMessage}</p>
+                <Sparkles className="size-8 md:size-12 opacity-20" />
+                <p className="text-sm md:text-base">{emptyStateMessage}</p>
               </div>
 
               {suggestedPrompts && suggestedPrompts.length > 0 && (
                 <div className="flex max-w-2xl flex-wrap justify-center gap-2">
-                  {suggestedPrompts.map((prompt, index) => (
+                  {suggestedPrompts.slice(0, isMobile ? 2 : 4).map((prompt, index) => (
                     <button
                       key={index}
                       onClick={() => onSendMessage(prompt)}
                       disabled={isLoading}
-                      className="rounded-lg border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-border bg-card px-3 md:px-4 py-1.5 md:py-2 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 touch-target"
                     >
                       {prompt}
                     </button>
@@ -224,7 +248,7 @@ export function AIChatBox({
           </div>
         ) : (
           <ScrollArea className="h-full">
-            <div className="flex flex-col space-y-4 p-4">
+            <div className="flex flex-col space-y-3 md:space-y-4 p-3 md:p-4">
               {displayMessages.map((message, index) => {
                 // Apply min-height to last message only if NOT loading (when loading, the loading indicator gets it)
                 const isLastMessage = index === displayMessages.length - 1;
@@ -235,7 +259,7 @@ export function AIChatBox({
                   <div
                     key={index}
                     className={cn(
-                      "flex gap-3",
+                      "flex gap-2 md:gap-3",
                       message.role === "user"
                         ? "justify-end items-start"
                         : "justify-start items-start"
@@ -247,14 +271,14 @@ export function AIChatBox({
                     }
                   >
                     {message.role === "assistant" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="size-4 text-primary" />
+                      <div className="size-7 md:size-8 shrink-0 mt-0.5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="size-3.5 md:size-4 text-primary" />
                       </div>
                     )}
 
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2.5",
+                        "max-w-[85%] md:max-w-[80%] rounded-lg px-3 md:px-4 py-2 md:py-2.5",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-foreground"
@@ -265,15 +289,13 @@ export function AIChatBox({
                           <Streamdown>{message.content}</Streamdown>
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap text-sm">
-                          {message.content}
-                        </p>
+                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                       )}
                     </div>
 
                     {message.role === "user" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-secondary flex items-center justify-center">
-                        <User className="size-4 text-secondary-foreground" />
+                      <div className="size-7 md:size-8 shrink-0 mt-0.5 rounded-full bg-secondary flex items-center justify-center">
+                        <User className="size-3.5 md:size-4 text-secondary-foreground" />
                       </div>
                     )}
                   </div>
@@ -282,18 +304,18 @@ export function AIChatBox({
 
               {isLoading && (
                 <div
-                  className="flex items-start gap-3"
+                  className="flex items-start gap-2 md:gap-3"
                   style={
                     minHeightForLastMessage > 0
                       ? { minHeight: `${minHeightForLastMessage}px` }
                       : undefined
                   }
                 >
-                  <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="size-4 text-primary" />
+                  <div className="size-7 md:size-8 shrink-0 mt-0.5 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="size-3.5 md:size-4 text-primary" />
                   </div>
-                  <div className="rounded-lg bg-muted px-4 py-2.5">
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  <div className="rounded-lg bg-muted px-3 md:px-4 py-2 md:py-2.5">
+                    <Loader2 className="size-3.5 md:size-4 animate-spin text-muted-foreground" />
                   </div>
                 </div>
               )}
@@ -306,28 +328,32 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="flex gap-2 p-4 border-t bg-background/50 items-end"
+        className="flex gap-2 p-3 md:p-4 border-t bg-background/50 items-end"
       >
         <Textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="flex-1 max-h-32 resize-none min-h-9"
-          rows={1}
+          placeholder={getPlaceholderText()}
+          className="flex-1 max-h-24 md:max-h-32 resize-none min-h-9"
+          rows={getTextareaRows()}
         />
         <Button
           type="submit"
-          size="icon"
+          size={isMobile ? "default" : "icon"}
           disabled={!input.trim() || isLoading}
-          className="shrink-0 h-[38px] w-[38px]"
+          className={cn(
+            "shrink-0",
+            isMobile ? "h-10 w-full" : "h-[38px] w-[38px]"
+          )}
         >
           {isLoading ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            <Send className="size-4" />
+            <Send className={cn("size-4", isMobile && "mr-2")} />
           )}
+          {isMobile && "Send"}
         </Button>
       </form>
     </div>

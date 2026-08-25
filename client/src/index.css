@@ -3,6 +3,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Responsive design system */
+@theme {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --touch-min: 44px;
+  --touch-optimal: 48px;
+  --container-max: 1760px;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -86,3 +98,40 @@ button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: poi
 }
 
 @keyframes drift { to { transform: skewY(-14deg) rotate(-2deg) translateY(-14px) translateX(9px); } }
+
+/* Responsive utilities - Touch targets and mobile optimizations */
+@media (max-width: 639px) {
+  /* Ensure minimum touch target sizes on mobile */
+  button,
+  [role="button"],
+  .touch-target {
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Adjust layouts for tablet */
+  .tablet-optimized {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 1024px) {
+  /* Larger touch targets for desktop */
+  button,
+  [role="button"] {
+    min-width: var(--touch-optimal);
+    min-height: var(--touch-optimal);
+  }
+}

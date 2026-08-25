@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsMobile, useIsTablet } from "@/hooks/useResponsive";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -36,6 +36,139 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
+
+// Mobile navigation bar component
+function MobileNavBar({ activeMenuItem }: { activeMenuItem: { icon: any; label: string; path: string } | undefined }) {
+  const { toggleSidebar } = useSidebar();
+  
+  return (
+    <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
+      <div className="flex items-center gap-2">
+        <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="tracking-tight text-foreground">
+              {activeMenuItem?.label ?? "Menu"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Responsive sidebar header
+function ResponsiveSidebarHeader() {
+  const { toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
+  
+  return (
+    <SidebarHeader className="h-16 justify-center">
+      <div className="flex items-center gap-3 px-2 transition-all w-full">
+        <button
+          onClick={toggleSidebar}
+          className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
+          aria-label="Toggle navigation"
+        >
+          <PanelLeft className="h-4 w-4 text-muted-foreground" />
+        </button>
+        {!isMobile && (
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-semibold tracking-tight truncate">
+              Navigation
+            </span>
+          </div>
+        )}
+      </div>
+    </SidebarHeader>
+  );
+}
+
+// Responsive sidebar content
+function ResponsiveSidebarContent() {
+  const [location, setLocation] = useLocation();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  
+  return (
+    <SidebarContent className="gap-0">
+      <SidebarMenu className="px-2 py-1">
+        {menuItems.map(item => {
+          const isActive = location === item.path;
+          return (
+            <SidebarMenuItem key={item.path}>
+              <SidebarMenuButton
+                isActive={isActive}
+                onClick={() => setLocation(item.path)}
+                tooltip={item.label}
+                className={`h-10 md:h-11 transition-all font-normal ${isMobile ? "justify-center" : ""}`}
+              >
+                <item.icon
+                  className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                />
+                {!isMobile && <span>{item.label}</span>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
+    </SidebarContent>
+  );
+}
+
+// Responsive user profile section
+function ResponsiveUserProfile({ user, logout }: { user: any; logout: () => void }) {
+  const isMobile = useIsMobile();
+  
+  return (
+    <SidebarFooter className="p-3">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Avatar className="h-9 w-9 border shrink-0">
+              <AvatarFallback className="text-xs font-medium">
+                {user?.name?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {!isMobile && (
+              <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                <p className="text-sm font-medium truncate leading-none">
+                  {user?.name || "-"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate mt-1.5">
+                  {user?.email || "-"}
+                </p>
+              </div>
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem
+            onClick={logout}
+            className="cursor-pointer text-destructive focus:text-destructive"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarFooter>
+  );
+}
+
+// Mobile-optimized main content
+function MobileMainContent({ children }: { children: React.ReactNode }) {
+  const isMobile = useIsMobile();
+  const [location] = useLocation();
+  const activeMenuItem = menuItems.find(item => item.path === location);
+  
+  return (
+    <SidebarInset>
+      {isMobile && <MobileNavBar activeMenuItem={activeMenuItem} />}
+      <main className="flex-1 p-3 md:p-4">{children}</main>
+    </SidebarInset>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -53,7 +186,7 @@ export default function DashboardLayout({
   }, [sidebarWidth]);
 
   if (loading) {
-    return <DashboardLayoutSkeleton />
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!user) {
@@ -112,6 +245,7 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   useEffect(() => {
     if (isCollapsed) {
@@ -151,112 +285,32 @@ function DashboardLayoutContent({
 
   return (
     <>
+      {/* Mobile-optimized sidebar - auto-collapses on mobile */}
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
           className="border-r-0"
           disableTransition={isResizing}
+          defaultOpen={!isMobile}
         >
-          <SidebarHeader className="h-16 justify-center">
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
-              <button
-                onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-                aria-label="Toggle navigation"
-              >
-                <PanelLeft className="h-4 w-4 text-muted-foreground" />
-              </button>
-              {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          </SidebarHeader>
-
-          <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarContent>
-
-          <SidebarFooter className="p-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback className="text-xs font-medium">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">
-                      {user?.name || "-"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.email || "-"}
-                    </p>
-                  </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarFooter>
+          <ResponsiveSidebarHeader />
+          <ResponsiveSidebarContent />
+          <ResponsiveUserProfile user={user} logout={logout} />
         </Sidebar>
-        <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
-          onMouseDown={() => {
-            if (isCollapsed) return;
-            setIsResizing(true);
-          }}
-          style={{ zIndex: 50 }}
-        />
+        
+        {/* Resize handle - hidden on mobile */}
+        {!isMobile && !isCollapsed && (
+          <div
+            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors`}
+            onMouseDown={() => setIsResizing(true)}
+            style={{ zIndex: 50 }}
+          />
+        )}
       </div>
 
-      <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "Menu"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <main className="flex-1 p-4">{children}</main>
-      </SidebarInset>
+      <MobileMainContent>
+        {children}
+      </MobileMainContent>
     </>
   );
 }
