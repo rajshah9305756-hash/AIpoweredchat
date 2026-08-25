@@ -43,25 +43,38 @@
 
 :root {
   --radius: 1.05rem;
-  --background: oklch(0.985 0.004 224);
-  --foreground: oklch(0.19 0.035 246);
-  --card: oklch(1 0 0 / 0.76);
-  --card-foreground: oklch(0.19 0.035 246);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.035 246);
-  --primary: oklch(0.52 0.15 220);
-  --primary-foreground: oklch(0.99 0.005 220);
-  --secondary: oklch(0.95 0.022 209);
-  --secondary-foreground: oklch(0.25 0.06 230);
-  --muted: oklch(0.95 0.01 227);
-  --muted-foreground: oklch(0.49 0.04 234);
-  --accent: oklch(0.92 0.06 191);
-  --accent-foreground: oklch(0.22 0.07 223);
-  --destructive: oklch(0.61 0.21 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.86 0.026 224 / 0.9);
-  --input: oklch(0.86 0.026 224 / 0.9);
-  --ring: oklch(0.58 0.17 221);
+  /* MVP Color Palette - Orange highlights, White background, Black text */
+  --background: #ffffff; /* Pure white background */
+  --foreground: #000000; /* Pure black text */
+  --card: #ffffff; /* White cards */
+  --card-foreground: #000000; /* Black text on cards */
+  --popover: #ffffff; /* White popovers */
+  --popover-foreground: #000000; /* Black text in popovers */
+  
+  /* Primary color - Orange for MVP highlights */
+  --primary: #ff6b35; /* Vibrant orange */
+  --primary-foreground: #ffffff; /* White text on orange */
+  
+  /* Secondary color - Lighter orange */
+  --secondary: #f7931e; /* Light orange */
+  --secondary-foreground: #ffffff; /* White text on secondary */
+  
+  /* Muted colors - Light grays */
+  --muted: #f5f5f5; /* Very light gray */
+  --muted-foreground: #666666; /* Dark gray text */
+  
+  /* Accent color - Bright orange */
+  --accent: #ffa500; /* Bright orange accent */
+  --accent-foreground: #000000; /* Black text on accent */
+  
+  /* Destructive - Red */
+  --destructive: #ff4444; /* Red for errors */
+  --destructive-foreground: #ffffff; /* White text on red */
+  
+  /* Border and input colors */
+  --border: #e0e0e0; /* Light gray border */
+  --input: #f0f0f0; /* Very light gray input background */
+  --ring: #ff6b35; /* Orange ring for focus */
 }
 
 * { border-color: var(--border); }
@@ -73,23 +86,36 @@ body {
   color: var(--foreground);
   font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   background-color: var(--background);
+  /* Subtle orange-tinted grid background for MVP */
   background-image:
-    linear-gradient(to right, oklch(0.74 0.07 218 / 0.13) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.74 0.07 218 / 0.13) 1px, transparent 1px),
-    radial-gradient(circle at 74% 6%, oklch(0.84 0.13 205 / 0.28), transparent 22rem),
-    radial-gradient(circle at 10% 86%, oklch(0.86 0.13 25 / 0.22), transparent 24rem);
-  background-size: 32px 32px, 32px 32px, auto, auto;
+    linear-gradient(to right, rgba(255, 107, 53, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 107, 53, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 button, input, textarea { font: inherit; }
 button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
 
 .mono { font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
-.glass { background: oklch(1 0 0 / 0.74); backdrop-filter: blur(18px); box-shadow: 0 18px 50px oklch(0.37 0.08 226 / 0.12); }
+
+/* Updated glass effect with orange tint */
+.glass { 
+  background: rgba(255, 255, 255, 0.85); 
+  backdrop-filter: blur(18px); 
+  box-shadow: 0 18px 50px rgba(255, 107, 53, 0.1); 
+}
+
+/* Updated plane colors to match orange theme */
 .plane { position: absolute; transform: skewY(-17deg) rotate(-4deg); filter: blur(0.1px); pointer-events: none; }
-.plane-teal { background: linear-gradient(130deg, oklch(0.77 0.17 194 / 0.62), oklch(0.56 0.16 205 / 0.14)); }
-.plane-blue { background: linear-gradient(130deg, oklch(0.74 0.14 241 / 0.54), oklch(0.59 0.16 220 / 0.08)); }
-.plane-coral { background: linear-gradient(130deg, oklch(0.8 0.15 39 / 0.48), oklch(0.7 0.12 28 / 0.06)); }
+.plane-teal { 
+  background: linear-gradient(130deg, rgba(255, 165, 0, 0.5), rgba(255, 107, 53, 0.3)); 
+}
+.plane-blue { 
+  background: linear-gradient(130deg, rgba(255, 140, 0, 0.4), rgba(255, 107, 53, 0.2)); 
+}
+.plane-coral { 
+  background: linear-gradient(130deg, rgba(255, 107, 53, 0.4), rgba(255, 69, 0, 0.15)); 
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .plane { animation: drift 9s cubic-bezier(.23,1,.32,1) infinite alternate; }
@@ -134,4 +160,35 @@ button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: poi
     min-width: var(--touch-optimal);
     min-height: var(--touch-optimal);
   }
+}
+
+/* Custom orange-themed scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary);
+}
+
+/* Focus styles with orange ring */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Selection color - orange */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
