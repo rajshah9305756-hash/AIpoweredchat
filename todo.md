@@ -1,0 +1,21 @@
+# Project TODO
+
+- [x] Establish the isometric AI coding workspace visual system with bold typography, geometric planes, and responsive layout behavior.
+- [x] Build authenticated user-scoped database schema for conversations, messages, workspace files, and non-secret backend preferences.
+- [x] Add secure server-side AI request handling for OpenAI-compatible backends without returning API keys to the browser.
+- [x] Build chat controls with saved conversations, new-chat creation, message history, markdown rendering, and generation states.
+- [x] Build code-aware workspace tools with file selection, extracted code blocks, syntax-highlighted editor panes, copy/download actions, and code editing.
+- [x] Add sandboxed live HTML, CSS, and JavaScript preview with desktop and mobile viewport modes.
+- [x] Add Settings interface to test and persist user-specific model, base URL, system prompt, temperature, token, and API-key configuration without persisting secrets.
+- [x] Add backend unit tests for access control, safe preference persistence, and request normalization.
+- [x] Run type checks and test suite, verify desktop and mobile UI, and record final completion status.
+- [x] Add router-level tests for user-scoped conversation access and verify settings responses never expose API keys.
+- [x] Verify the authenticated workspace behavior across desktop and mobile views and confirm no new browser-console errors.
+- [x] Remove the sign-in gateway and make the coding workspace immediately available to visitors.
+- [x] Replace authenticated persistence with browser-local workspace state while retaining server-only custom backend requests.
+- [x] Verify the unauthenticated workspace, settings flow, code editor, and sandboxed preview across desktop and mobile.
+- [x] Move the temporarily submitted provider key from browser state into a server-only volatile workspace session.
+- [x] Re-verify the public workspace at a mobile viewport after the no-login conversion.
+- [x] Review the connected GitHub repository and determine the deployment configuration needed for Vercel.
+- [x] Add a Vercel configuration and any required deployment guidance for the application.
+- [ ] Validate the deployment build, commit the completed code, and push it to the connected repository.
