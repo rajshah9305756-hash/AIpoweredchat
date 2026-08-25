@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import type { ProviderSuggestion } from "@server/providers";
 import { 
   ArrowUpRight, Braces, Check, Copy, Download, FileCode2, 
   FolderCode, KeyRound, LayoutTemplate, Loader2, Monitor, 
@@ -391,7 +392,7 @@ function SimpleMarkdown({ content }: { content: string }) {
   })}</div>;
 }
 
-function SettingsPanel({ config, setConfig, apiKey, setApiKey, keyReady, savingKey, testing, onClose, onStoreKey, onTest }: { 
+function SettingsPanel({ config, setConfig, apiKey, setApiKey, keyReady, savingKey, testing, onClose, onStoreKey, onTest, providerSuggestions }: { 
   config: typeof defaultConfig; 
   setConfig: Dispatch<SetStateAction<typeof defaultConfig>>; 
   apiKey: string; 
@@ -401,10 +402,47 @@ function SettingsPanel({ config, setConfig, apiKey, setApiKey, keyReady, savingK
   testing: boolean; 
   onClose: () => void; 
   onStoreKey: () => void; 
-  onTest: () => void 
+  onTest: () => void;
+  providerSuggestions: Array<ProviderSuggestion>;
 }) {
   const update = <K extends keyof typeof defaultConfig>(key: K, value: typeof defaultConfig[K]) => setConfig(current => ({ ...current, [key]: value }));
   const isMobile = useIsMobile();
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [filterText, setFilterText] = useState("");
+  
+  // Auto-detect provider from base URL
+  useEffect(() => {
+    if (config.baseUrl) {
+      const provider = providerSuggestions.find(p => 
+        config.baseUrl.includes(p.baseUrl.replace(/^https?:\\/\\//, "").split("/")[0])
+      );
+      if (provider) setSelectedProvider(provider.id);
+    }
+  }, [config.baseUrl, providerSuggestions]);
+  
+  // Auto-fill base URL and model when provider is selected
+  useEffect(() => {
+    if (selectedProvider) {
+      const provider = providerSuggestions.find(p => p.id === selectedProvider);
+      if (provider) {
+        update("baseUrl", provider.baseUrl);
+        if (!config.model || !provider.models.includes(config.model)) {
+          update("model", provider.models[0]);
+        }
+      }
+    }
+  }, [selectedProvider, providerSuggestions, config.model]);
+  
+  const filteredProviders = providerSuggestions.filter(p => 
+    p.name.toLowerCase().includes(filterText.toLowerCase()) ||
+    p.id.toLowerCase().includes(filterText.toLowerCase())
+  );
+  
+  const handleSelectProvider = (providerId: string) => {
+    setSelectedProvider(providerId);
+    setShowProviderSelector(false);
+    setFilterText("");
+  };
   
   return (
     <main className="glass mx-auto mt-3 w-full max-w-5xl rounded-2xl border border-white/85 p-4 sm:p-5 md:p-8">
@@ -424,7 +462,67 @@ function SettingsPanel({ config, setConfig, apiKey, setApiKey, keyReady, savingK
           <X className="size-4" />
         </button>
       </div>
-      <div className="mt-6 md:mt-8 grid gap-4 md:gap-5 md:grid-cols-2">
+      
+      {/* Quick provider selection */}
+      <div className="mt-6 md:mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Quick provider setup</h3>
+            <p className="text-sm text-muted-foreground mt-1">Select a provider to auto-configure base URL and model</p>
+          </div>
+          <button 
+            onClick={() => setShowProviderSelector(!showProviderSelector)} 
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            {selectedProvider ? providerSuggestions.find(p => p.id === selectedProvider)?.name || "Select provider" : "Select provider"}
+            <ChevronDown className="size-4" />
+          </button>
+        </div>
+        
+        {showProviderSelector && (
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg z-10" />
+            <div className="relative rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="size-4 text-muted-foreground" />
+                <input 
+                  type="text" 
+                  placeholder="Filter providers..." 
+                  value={filterText} 
+                  onChange={(e) => setFilterText(e.target.value)}
+                  className="flex-1 border-0 bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {filteredProviders.map(provider => (
+                    <button
+                      key={provider.id}
+                      onClick={() => handleSelectProvider(provider.id)}
+                      className={`flex items-center gap-2 p-2 rounded-lg text-sm transition-all ${
+                        selectedProvider === provider.id 
+                          ? "bg-cyan-100 text-cyan-800 font-medium" 
+                          : "text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Code2 className="size-4" />
+                      <div className="text-left">
+                        <p className="font-medium">{provider.name}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-32">{provider.baseUrl}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {filteredProviders.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No providers found</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="grid gap-4 md:gap-5 md:grid-cols-2">
         <Field label="Base URL" hint="Example: https://api.example.com/v1">
           <input value={config.baseUrl} onChange={event => update("baseUrl", event.target.value)} placeholder="https://api.example.com/v1" />
         </Field>
@@ -502,6 +600,8 @@ export default function Home() {
   const [workspaceId] = useState(() => readLocal<string>("ai-chat-studio-workspace-id", crypto.randomUUID()));
   const [sessionKeyReady, setSessionKeyReady] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
+  const [providerSuggestions, setProviderSuggestions] = useState<Array<ProviderSuggestion>>([]);
+  const [showProviderSelector, setShowProviderSelector] = useState(false);
   
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -533,6 +633,26 @@ export default function Home() {
   useEffect(() => persistLocal(store.files, files), [files]);
   useEffect(() => persistLocal(store.preferences, config), [config]);
   useEffect(() => persistLocal("ai-chat-studio-workspace-id", workspaceId), [workspaceId]);
+
+  // Fetch provider suggestions on mount
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        // Import dynamically to avoid SSR issues
+        const { getProviderSuggestions } = await import("@server/providers");
+        setProviderSuggestions(getProviderSuggestions());
+      } catch {
+        // Fallback to default suggestions if providers module not available
+        setProviderSuggestions([
+          { id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1", models: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"] },
+          { id: "mistral", name: "Mistral AI", baseUrl: "https://api.mistral.ai/v1", models: ["mistral-tiny", "mistral-small", "mistral-medium"] },
+          { id: "anthropic", name: "Anthropic", baseUrl: "https://api.anthropic.com/v1", models: ["claude-3-5-sonnet", "claude-3-haiku"] },
+          { id: "groq", name: "Groq", baseUrl: "https://api.groq.com/v1", models: ["llama-3.1-70b-versatile", "llama-3.1-8b-instant"] },
+        ]);
+      }
+    };
+    fetchProviders();
+  }, []);
 
   const activeConversation = conversations.find(conversation => conversation.id === activeConversationId) || null;
   const activeFile = files.find(file => file.path === activePath) || files[0] || starterFiles[0];
@@ -722,7 +842,8 @@ export default function Home() {
             testing={testSettings.isPending} 
             onClose={() => setTab("workspace")} 
             onStoreKey={saveTemporaryKey} 
-            onTest={testConnection} 
+            onTest={testConnection}
+            providerSuggestions={providerSuggestions}
           />
         ) : (
           <div className="flex-1 mt-2 md:mt-3">{renderLayout()}</div>
