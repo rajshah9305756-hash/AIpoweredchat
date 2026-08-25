@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import type { ProviderSuggestion } from "@server/providers";
+import type { ProviderSuggestion } from "@shared/providers";
 import { 
   ArrowUpRight, Braces, Check, Copy, Download, FileCode2, 
   FolderCode, KeyRound, LayoutTemplate, Loader2, Monitor, 

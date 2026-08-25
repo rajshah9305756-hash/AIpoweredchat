@@ -2,9 +2,11 @@
  * Provider configurations for various LLM inference providers
  * This module handles provider-specific API requirements and request formatting
  */
-
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 
+/**
+ * Provider configuration for internal request handling
+ */
 export type ProviderConfig = {
   id: string;
   name: string;
@@ -24,6 +26,16 @@ export type ProviderConfig = {
   testResponseValidator?: (response: string) => boolean;
   models?: string[];
   requiresApiKey: boolean;
+};
+
+/**
+ * Provider suggestion type for the UI
+ */
+export type ProviderSuggestion = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  models: string[];
 };
 
 // Common response extractors
@@ -68,7 +80,7 @@ export const googleResponseExtractor = (response: AxiosResponse): string => {
 };
 
 // Provider configurations
-const PROVIDERS: ProviderConfig[] = [
+const PROVIDERS: Array<ProviderConfig & { models: string[] }> = [
   // OpenAI and compatible providers (Mistral, DeepSeek, etc.)
   {
     id: "openai",
@@ -86,6 +98,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
   },
   
   // Mistral AI (OpenAI-compatible)
@@ -105,6 +118,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["mistral-tiny", "mistral-small", "mistral-medium", "mistral-large"],
   },
   
   // Anthropic Claude
@@ -134,6 +148,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["claude-3-5-sonnet", "claude-3-haiku", "claude-3-opus"],
   },
   
   // Cohere
@@ -162,6 +177,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["command-r-plus", "command-r"],
   },
   
   // Google Vertex AI / Gemini
@@ -201,6 +217,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["gemini-1.5-flash", "gemini-1.5-pro"],
   },
   
   // Local inference servers (Ollama, LM Studio, etc.) - OpenAI compatible
@@ -219,7 +236,8 @@ const PROVIDERS: ProviderConfig[] = [
     responseContentExtractor: openAIResponseExtractor,
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
-    requiresApiKey: false, // Local servers may not require API keys
+    requiresApiKey: false,
+    models: ["llama3.1", "mistral", "phi3"],
   },
   
   // Groq
@@ -239,6 +257,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b"],
   },
   
   // Perplexity
@@ -258,6 +277,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["llama-3.1-sonar-large", "llama-3.1-sonar-small", "mixtral-8x7b"],
   },
   
   // Fireworks AI
@@ -277,6 +297,7 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["llama-v3p1-70b", "llama-v3p1-8b", "mixtral-8x7b"],
   },
   
   // Together AI
@@ -296,13 +317,14 @@ const PROVIDERS: ProviderConfig[] = [
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: ["llama-3.1-70b", "llama-3.1-8b", "mixtral-8x7b"],
   },
 ];
 
 /**
  * Detect the provider based on the base URL
  */
-export function detectProvider(baseUrl: string): ProviderConfig {
+export function detectProvider(baseUrl: string): ProviderConfig & { models: string[] } {
   const normalizedUrl = baseUrl.replace(/\/$/, "").toLowerCase();
   
   for (const provider of PROVIDERS) {
@@ -328,27 +350,28 @@ export function detectProvider(baseUrl: string): ProviderConfig {
     testPrompt: "Reply with the exact text CONNECTION_OK.",
     testResponseValidator: (response) => response.includes("CONNECTION_OK"),
     requiresApiKey: true,
+    models: [],
   };
 }
 
 /**
  * Get all supported provider configurations
  */
-export function getAllProviders(): ProviderConfig[] {
+export function getAllProviders(): Array<ProviderConfig & { models: string[] }> {
   return [...PROVIDERS];
 }
 
 /**
  * Get provider by ID
  */
-export function getProviderById(id: string): ProviderConfig | undefined {
+export function getProviderById(id: string): (ProviderConfig & { models: string[] }) | undefined {
   return PROVIDERS.find(p => p.id === id);
 }
 
 /**
  * Get the chat endpoint URL for a provider
  */
-export function getChatEndpoint(baseUrl: string, model: string, provider?: ProviderConfig): string {
+export function getChatEndpoint(baseUrl: string, model: string, provider?: ProviderConfig & { models: string[] }): string {
   const detectedProvider = provider || detectProvider(baseUrl);
   
   // For Google Vertex AI, the model is part of the URL
@@ -397,23 +420,35 @@ export function buildProviderRequest(
 /**
  * Extract content from provider-specific response
  */
-export function extractProviderResponse(provider: ProviderConfig, response: AxiosResponse): string {
+export function extractProviderResponse(provider: ProviderConfig & { models: string[] }, response: AxiosResponse): string {
   return provider.responseContentExtractor(response);
 }
 
 /**
  * Get the test prompt for a provider
  */
-export function getTestPrompt(provider: ProviderConfig): string {
+export function getTestPrompt(provider: ProviderConfig & { models: string[] }): string {
   return provider.testPrompt || "Reply with the exact text CONNECTION_OK.";
 }
 
 /**
  * Validate test response for a provider
  */
-export function validateTestResponse(provider: ProviderConfig, response: string): boolean {
+export function validateTestResponse(provider: ProviderConfig & { models: string[] }, response: string): boolean {
   if (provider.testResponseValidator) {
     return provider.testResponseValidator(response);
   }
   return response.includes("CONNECTION_OK");
+}
+
+/**
+ * Get provider suggestions for the settings UI
+ */
+export function getProviderSuggestions(): ProviderSuggestion[] {
+  return PROVIDERS.map(provider => ({
+    id: provider.id,
+    name: provider.name,
+    baseUrl: provider.baseUrlPattern.toString().replace(/^\//, "").replace(/\/$/, ""),
+    models: provider.models || [],
+  }));
 }
